@@ -2,10 +2,8 @@ using System;
 using UnityEngine;
 
 // Owns the score and lives. Everything else reads them through ScoreKeeper.Instance.
-public class ScoreKeeper : MonoBehaviour
+public class ScoreKeeper : IScoreKeeper
 {
-    public static ScoreKeeper Instance;
-
     public int Score { get; private set; }
     public int Lives { get; private set; }
 
@@ -13,9 +11,8 @@ public class ScoreKeeper : MonoBehaviour
     public event Action LivesChanged;
     public event Action GameOver;
 
-    void Awake()
+    public ScoreKeeper()
     {
-        Instance = this;
         Lives = GameSettings.StartingLives;
     }
 
