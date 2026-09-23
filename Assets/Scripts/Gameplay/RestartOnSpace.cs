@@ -5,7 +5,14 @@ using UnityEngine.SceneManagement;
 // Once the game is over, the Restart action (Space / gamepad Start) reloads the scene.
 public class RestartOnSpace : MonoBehaviour
 {
+    IScoreKeeper scoreKeeper;
+
     InputAction restartAction;
+
+    private void Start()
+    {
+        scoreKeeper = Services.Get<IScoreKeeper>();
+    }
 
     void OnEnable()
     {
@@ -20,7 +27,7 @@ public class RestartOnSpace : MonoBehaviour
 
     void OnRestart(InputAction.CallbackContext context)
     {
-        if (ScoreKeeper.Instance.Lives <= 0)
+        if (scoreKeeper.Lives <= 0)
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

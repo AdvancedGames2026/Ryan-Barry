@@ -4,7 +4,7 @@ using UnityEngine.UI;
 // Drives the three legacy uGUI Text objects on the HUD canvas.
 public class HudController : MonoBehaviour
 {
-    public static HudController Instance;
+    IScoreKeeper scoreKeeper;
 
     public Text scoreText;
     public Text livesText;
@@ -12,39 +12,39 @@ public class HudController : MonoBehaviour
 
     void Awake()
     {
-        Instance = this;
+        //Instance = this;
         gameOverText.gameObject.SetActive(false);
     }
 
     void Start()
     {
-        ScoreKeeper keeper = ScoreKeeper.Instance;
-        keeper.ScoreChanged += RefreshScore;
-        keeper.LivesChanged += RefreshLives;
-        keeper.GameOver += ShowGameOver;
+        scoreKeeper = Services.Get<IScoreKeeper>();
+
+        scoreKeeper.ScoreChanged += RefreshScore;
+        scoreKeeper.LivesChanged += RefreshLives;
+        scoreKeeper.GameOver += ShowGameOver;
         RefreshScore();
         RefreshLives();
     }
 
     void OnDestroy()
     {
-        ScoreKeeper keeper = ScoreKeeper.Instance;
-        if (keeper != null)
+        if (scoreKeeper != null)
         {
-            keeper.ScoreChanged -= RefreshScore;
-            keeper.LivesChanged -= RefreshLives;
-            keeper.GameOver -= ShowGameOver;
+            scoreKeeper.ScoreChanged -= RefreshScore;
+            scoreKeeper.LivesChanged -= RefreshLives;
+            scoreKeeper.GameOver -= ShowGameOver;
         }
     }
 
     void RefreshScore()
     {
-        scoreText.text = $"Score: {ScoreKeeper.Instance.Score}";
+        scoreText.text = $"Score: {scoreKeeper.Score}";
     }
 
     void RefreshLives()
     {
-        livesText.text = $"Lives: {ScoreKeeper.Instance.Lives}";
+        livesText.text = $"Lives: {scoreKeeper.Lives}";
     }
 
     void ShowGameOver()

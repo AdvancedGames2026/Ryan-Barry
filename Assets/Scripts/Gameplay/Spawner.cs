@@ -3,7 +3,7 @@ using UnityEngine;
 // Spawns circles on a timer. Both the timer and the fall speed ramp with the score.
 public class Spawner : MonoBehaviour
 {
-    public static Spawner Instance;
+    IScoreKeeper scoreKeeper;
 
     public FallingCircle circlePrefab;
 
@@ -16,7 +16,7 @@ public class Spawner : MonoBehaviour
     {
         get
         {
-            float interval = GameSettings.BaseSpawnInterval - ScoreKeeper.Instance.Score * GameSettings.IntervalPerPoint;
+            float interval = GameSettings.BaseSpawnInterval - scoreKeeper.Score * GameSettings.IntervalPerPoint;
             return Mathf.Max(interval, GameSettings.MinSpawnInterval);
         }
     }
@@ -25,17 +25,21 @@ public class Spawner : MonoBehaviour
     {
         get
         {
-            return GameSettings.BaseFallSpeed + ScoreKeeper.Instance.Score * GameSettings.FallSpeedPerPoint;
+            return GameSettings.BaseFallSpeed + scoreKeeper.Score * GameSettings.FallSpeedPerPoint;
         }
     }
 
     void Awake()
     {
-        Instance = this;
+        //Instance = this;
     }
 
     void Start()
     {
+
+        scoreKeeper = GetComponent<IScoreKeeper>();
+        scoreKeeper.GameOver += Stop;
+
         Camera cam = Camera.main;
         halfWidth = cam.orthographicSize * cam.aspect - 0.5f;
         topEdge = cam.orthographicSize + 1f;
@@ -61,4 +65,11 @@ public class Spawner : MonoBehaviour
     {
         running = false;
     }
+
+    private void OnDestroy()
+    {
+        if (scoreKeeper != null)
+            scoreKeeper.GameOver -= Stop;
+    }
+
 }

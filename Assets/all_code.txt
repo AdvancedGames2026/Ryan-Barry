@@ -1,0 +1,318 @@
+
+public static class GameSettings
+{
+    public static float MoveSpeed = 8f;          // player units per second
+    public static float BaseFallSpeed = 3f;      // circle units per second at score 0
+    public static float FallSpeedPerPoint = 0.15f;
+    public static float BaseSpawnInterval = 1.2f; // seconds between circles at score 0
+    public static float IntervalPerPoint = 0.04f;
+    public static float MinSpawnInterval = 0.35f;
+    public static int StartingLives = 3;
+}
+using System;
+using UnityEngine;
+
+public interface IScoreKeeper
+{
+    event Action ScoreChanged;
+    event Action LivesChanged;
+    event Action GameOver;
+
+    int Score { get; }  
+    int Lives { get; }
+
+    void AddScore();
+    void LoseLife();
+}
+using System;
+using UnityEngine;
+
+// Owns the score and lives. Everything else reads them through ScoreKeeper.Instance.
+public class ScoreKeeper : IScoreKeeper
+{
+    public int Score { get; private set; }
+    public int Lives { get; private set; }
+
+    public event Action ScoreChanged;
+    public event Action LivesChanged;
+    public event Action GameOver;
+
+    public ScoreKeeper()
+    {
+        Lives = GameSettings.StartingLives;
+    }
+
+    public void AddScore()
+    {
+        if (Lives > 0)
+        {
+            Score++;
+            ScoreChanged?.Invoke();
+        }
+    }
+
+    public void LoseLife()
+    {
+        if (Lives > 0)
+        {
+            Lives--;
+            LivesChanged?.Invoke();
+
+            if (Lives == 0)
+            {
+                GameOver?.Invoke();
+            }
+        }
+    }
+}
+using UnityEngine;
+using System.Collections.Generic;
+using System;
+
+public static class Services
+{
+    static readonly Dictionary<Type, object> services = new();
+
+    public static void Register<T>(T service)
+    {
+        services[typeof(T)] = service;
+    }
+
+    public static T Get<T>()
+    {
+        if (services.TryGetValue(typeof(T), out var service))
+        {
+            return (T)service;
+        }
+        else
+        {
+            throw new System.Exception($"Service of type {typeof(T)} not registered.");
+        }
+    }
+
+    public static void Clear()
+    {
+        services.Clear();
+    }
+}
+using UnityEngine;
+
+public class FallingCircle : MonoBehaviour
+{
+    public float Speed = 3f; // set by Spawner when instantiated
+
+    Rigidbody2D body;
+    float bottomEdge;
+
+    void Start()
+    {
+        body = GetComponent<Rigidbody2D>();
+        bottomEdge = -Camera.main.orthographicSize - transform.localScale.y;
+    }
+
+    void Update()
+    {
+        
+        body.linearVelocity = Vector2.down * Speed;
+
+        if (transform.position.y <= bottomEdge)
+        {
+            ScoreKeeper.Instance.LoseLife();
+            Destroy(gameObject);
+        }
+    }
+}
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class PlayerController : MonoBehaviour
+{
+    InputAction moveAction;
+    float moveDirection;
+    float halfWidth;
+
+    void OnEnable()
+    {
+        moveAction = InputSystem.actions.FindAction("Player/Move");
+        moveAction.performed += OnMove;
+        moveAction.canceled += OnMove;
+    }
+
+    void OnDisable()
+    {
+        moveAction.performed -= OnMove;
+        moveAction.canceled -= OnMove;
+    }
+
+    void Start()
+    {
+        Camera cam = Camera.main;
+        halfWidth = cam.orthographicSize * cam.aspect - transform.localScale.x * 0.5f;
+    }
+
+    void OnMove(InputAction.CallbackContext context)
+    {
+        moveDirection = context.ReadValue<Vector2>().x;
+    }
+
+    void Update()
+    {
+        Vector3 p = transform.position;
+        p.x = Mathf.Clamp(p.x + moveDirection * GameSettings.MoveSpeed * Time.deltaTime, -halfWidth, halfWidth);
+        transform.position = p;
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.TryGetComponent(out FallingCircle circle))
+        {
+            ScoreKeeper.Instance.AddScore();
+            Destroy(circle.gameObject);
+        }
+    }
+}
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+
+// Once the game is over, the Restart action (Space / gamepad Start) reloads the scene.
+public class RestartOnSpace : MonoBehaviour
+{
+    InputAction restartAction;
+
+    void OnEnable()
+    {
+        restartAction = InputSystem.actions.FindAction("Player/Restart");
+        restartAction.performed += OnRestart;
+    }
+
+    void OnDisable()
+    {
+        restartAction.performed -= OnRestart;
+    }
+
+    void OnRestart(InputAction.CallbackContext context)
+    {
+        if (ScoreKeeper.Instance.Lives <= 0)
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+}
+using UnityEngine;
+
+// Spawns circles on a timer. Both the timer and the fall speed ramp with the score.
+public class Spawner : MonoBehaviour
+{
+    public static Spawner Instance;
+
+    public FallingCircle circlePrefab;
+
+    float timer;
+    bool running = true;
+    float halfWidth;
+    float topEdge;
+
+    public float CurrentInterval
+    {
+        get
+        {
+            float interval = GameSettings.BaseSpawnInterval - ScoreKeeper.Instance.Score * GameSettings.IntervalPerPoint;
+            return Mathf.Max(interval, GameSettings.MinSpawnInterval);
+        }
+    }
+
+    public float CurrentFallSpeed
+    {
+        get
+        {
+            return GameSettings.BaseFallSpeed + ScoreKeeper.Instance.Score * GameSettings.FallSpeedPerPoint;
+        }
+    }
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void Start()
+    {
+        Camera cam = Camera.main;
+        halfWidth = cam.orthographicSize * cam.aspect - 0.5f;
+        topEdge = cam.orthographicSize + 1f;
+    }
+
+    void Update()
+    {
+        if (running)
+        {
+            timer += Time.deltaTime;
+            if (timer >= CurrentInterval)
+            {
+                timer = 0f;
+                Vector3 pos = new Vector3(Random.Range(-halfWidth, halfWidth), topEdge, 0f);
+
+                FallingCircle circle = Instantiate(circlePrefab, pos, Quaternion.identity);
+                circle.Speed = CurrentFallSpeed;
+            }
+        }
+    }
+
+    public void Stop()
+    {
+        running = false;
+    }
+}
+using UnityEngine;
+using UnityEngine.UI;
+
+// Drives the three legacy uGUI Text objects on the HUD canvas.
+public class HudController : MonoBehaviour
+{
+    public static HudController Instance;
+
+    public Text scoreText;
+    public Text livesText;
+    public Text gameOverText;
+
+    void Awake()
+    {
+        Instance = this;
+        gameOverText.gameObject.SetActive(false);
+    }
+
+    void Start()
+    {
+        ScoreKeeper keeper = ScoreKeeper.Instance;
+        keeper.ScoreChanged += RefreshScore;
+        keeper.LivesChanged += RefreshLives;
+        keeper.GameOver += ShowGameOver;
+        RefreshScore();
+        RefreshLives();
+    }
+
+    void OnDestroy()
+    {
+        ScoreKeeper keeper = ScoreKeeper.Instance;
+        if (keeper != null)
+        {
+            keeper.ScoreChanged -= RefreshScore;
+            keeper.LivesChanged -= RefreshLives;
+            keeper.GameOver -= ShowGameOver;
+        }
+    }
+
+    void RefreshScore()
+    {
+        scoreText.text = $"Score: {ScoreKeeper.Instance.Score}";
+    }
+
+    void RefreshLives()
+    {
+        livesText.text = $"Lives: {ScoreKeeper.Instance.Lives}";
+    }
+
+    void ShowGameOver()
+    {
+        gameOverText.text = "GAME OVER\nPress Space to restart";
+        gameOverText.gameObject.SetActive(true);
+    }
+}

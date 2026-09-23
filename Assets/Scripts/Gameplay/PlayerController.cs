@@ -3,6 +3,9 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
+
+    IScoreKeeper scoreKeeper;
+
     InputAction moveAction;
     float moveDirection;
     float halfWidth;
@@ -22,6 +25,8 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+        scoreKeeper = Services.Get<IScoreKeeper>();
+
         Camera cam = Camera.main;
         halfWidth = cam.orthographicSize * cam.aspect - transform.localScale.x * 0.5f;
     }
@@ -42,7 +47,7 @@ public class PlayerController : MonoBehaviour
     {
         if (other.TryGetComponent(out FallingCircle circle))
         {
-            ScoreKeeper.Instance.AddScore();
+            scoreKeeper.AddScore();
             Destroy(circle.gameObject);
         }
     }

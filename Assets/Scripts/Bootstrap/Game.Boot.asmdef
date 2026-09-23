@@ -1,3 +1,16 @@
 {
-	"name": "Game.Boot"
+    "name": "Game.Boot",
+    "rootNamespace": "",
+    "references": [
+        "GUID:97cfbd32836d25e4388f87195a94c843"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
