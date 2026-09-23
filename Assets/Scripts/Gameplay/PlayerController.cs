@@ -5,6 +5,7 @@ public class PlayerController : MonoBehaviour
 {
 
     IScoreKeeper scoreKeeper;
+    IAudioService audioService;
 
     InputAction moveAction;
     float moveDirection;
@@ -26,6 +27,7 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         scoreKeeper = Services.Get<IScoreKeeper>();
+        audioService = Services.Get<IAudioService>();
 
         Camera cam = Camera.main;
         halfWidth = cam.orthographicSize * cam.aspect - transform.localScale.x * 0.5f;
@@ -48,6 +50,7 @@ public class PlayerController : MonoBehaviour
         if (other.TryGetComponent(out FallingCircle circle))
         {
             scoreKeeper.AddScore();
+            audioService.Play(Sound.Catch);
             Destroy(circle.gameObject);
         }
     }

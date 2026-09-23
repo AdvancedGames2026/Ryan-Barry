@@ -1,6 +1,7 @@
 ﻿<Solution>
   <Project Path="Game.Boot.csproj" />
   <Project Path="Game.Core.csproj" />
+  <Project Path="NewAssembly.csproj" />
   <Project Path="Game.Gameplay.csproj" />
   <Project Path="Game.UI.csproj" />
 </Solution>
