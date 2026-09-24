@@ -1,21 +1,21 @@
 using UnityEngine;
 
-public class HighScoreTracker
+public class HighScoreTracker : IHighScore
 {
     IScoreKeeper scoreKeeper;
     ISaveService save;
+    ILog logger;
 
     public int Best { get; private set; }
 
-    public HighScoreTracker(IScoreKeeper scoreKeeper, ISaveService save)
+    public HighScoreTracker(IScoreKeeper scoreKeeper, ISaveService save, ILog logger)
     {
         this.scoreKeeper = scoreKeeper;
         this.save = save;
+        this.logger = logger;
 
         Best = save.LoadHighScore();
         scoreKeeper.GameOver += OnGameOver;
-
-
     }
 
     void OnGameOver()
@@ -24,6 +24,7 @@ public class HighScoreTracker
         {
             Best = scoreKeeper.Score;
             save.SaveHighScore(Best);
+            logger.Log($"New high score: {Best}");
         }
     }
 }

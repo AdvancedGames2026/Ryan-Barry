@@ -7,6 +7,8 @@ public class AudioService : MonoBehaviour, IAudioService
     [SerializeField] AudioClip loseLifeClip;
     [SerializeField] AudioClip gameOverClip;
 
+    static AudioService instance;
+
     public void Play(Sound sound)
     {
         AudioClip clip = null;
@@ -32,4 +34,16 @@ public class AudioService : MonoBehaviour, IAudioService
         }
 
     }
+    //void Awake()
+    //{
+    //    if (instance != null)
+    //    {
+    //        Destroy(gameObject);
+    //        return;
+    //    }
+
+    //    instance = this;
+    //    DontDestroyOnLoad(gameObject);
+    //}
+
 }

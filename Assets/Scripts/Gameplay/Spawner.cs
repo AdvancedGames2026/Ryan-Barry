@@ -4,6 +4,7 @@ using UnityEngine;
 public class Spawner : MonoBehaviour
 {
     IScoreKeeper scoreKeeper;
+    IRandom random;
 
     public FallingCircle circlePrefab;
 
@@ -37,8 +38,12 @@ public class Spawner : MonoBehaviour
     void Start()
     {
 
-        scoreKeeper = GetComponent<IScoreKeeper>();
+        scoreKeeper = Services.Get<IScoreKeeper>();
         scoreKeeper.GameOver += Stop;
+
+        random = Services.Get<IRandom>();
+        //random = new SystemRandom(12345);
+
 
         Camera cam = Camera.main;
         halfWidth = cam.orthographicSize * cam.aspect - 0.5f;
@@ -53,7 +58,7 @@ public class Spawner : MonoBehaviour
             if (timer >= CurrentInterval)
             {
                 timer = 0f;
-                Vector3 pos = new Vector3(Random.Range(-halfWidth, halfWidth), topEdge, 0f);
+                Vector3 pos = new Vector3(random.Range(-halfWidth, halfWidth), topEdge, 0f);
 
                 FallingCircle circle = Instantiate(circlePrefab, pos, Quaternion.identity);
                 circle.Speed = CurrentFallSpeed;
